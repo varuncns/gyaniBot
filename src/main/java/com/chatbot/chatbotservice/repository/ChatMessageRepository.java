@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface ChatMessageRepository extends MongoRepository<ChatMessage, String> {
     List<ChatMessage> findBySessionId(String sessionId);
+    List<ChatMessage> findBySessionIdOrderByTimestampAsc(String sessionId);
+    int countBySessionId(String sessionId);
 }
