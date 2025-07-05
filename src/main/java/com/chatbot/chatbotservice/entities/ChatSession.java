@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
-import java.util.List;
 
 @Entity
 @Table(name = "chat_sessions")
@@ -25,7 +24,4 @@ public class ChatSession {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
-
-    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL)
-    private List<ChatMessage> messages;
 }

@@ -11,7 +11,24 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - gyanibot-net
+
+  mongo:
+    image: mongo:latest
+    container_name: gyani_mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - gyanibot-net
 
 volumes:
-  pgdata:
+  postgres_data:
+  mongo_data:
+
+networks:
+  gyanibot-net:
+    driver: bridge

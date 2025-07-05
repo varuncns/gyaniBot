@@ -2,63 +2,24 @@ package com.chatbot.chatbotservice.controller;
 
 import com.chatbot.chatbotservice.dto.ChatRequest;
 import com.chatbot.chatbotservice.dto.ChatResponse;
-import com.chatbot.chatbotservice.dto.ChatResponse.Meta;
-import com.chatbot.chatbotservice.dto.ChatResponse.Usage;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.beans.factory.annotation.Value;
+import com.chatbot.chatbotservice.service.ChatService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/chat")
+@RequiredArgsConstructor
 public class ChatController {
 
-    private final ChatModel chatModel;
-
-    @Value("${spring.ai.openai.chat.model}")
-    private String modelName;
-
-    public ChatController(ChatModel chatModel) {
-        this.chatModel = chatModel;
-    }
+    private final ChatService chatService;
 
     @PostMapping("/message")
-    public ChatResponse chat(@RequestBody ChatRequest request) {
-        UserMessage userMessage = new UserMessage(request.getMessage());
-        Prompt prompt = new Prompt(List.of(userMessage));
-        var result = chatModel.call(prompt);
-
-        if (result.getResult().getOutput() instanceof AssistantMessage assistantMessage) {
-            String content = assistantMessage.getText();
-
-            Map<String, Object> metadata = assistantMessage.getMetadata();
-            String finishReason = (String) metadata.getOrDefault("finishReason", "UNKNOWN");
-            String messageId = (String) metadata.getOrDefault("id", "N/A");
-            int index = (int) metadata.getOrDefault("index", 0);
-            String role = (String) metadata.getOrDefault("role", "ASSISTANT");
-
-            Meta meta = new Meta(
-                    role,
-                    modelName,
-                    messageId,
-                    index,
-                    finishReason,
-                    Instant.now().toString()
-            );
-
-            Usage usage = new Usage(0, 0, 0);
-
-            return new ChatResponse(content, meta, usage);
-        }
-
-        Meta fallbackMeta = new Meta("UNKNOWN", modelName, "N/A", -1, "ERROR", Instant.now().toString());
-        Usage fallbackUsage = new Usage(0, 0, 0);
-        return new ChatResponse("No response", fallbackMeta, fallbackUsage);
+    public ChatResponse chat(
+            @RequestHeader("X-API-KEY") String apiKey,
+            @RequestHeader("X-USER-EMAIL") String email,
+            @RequestHeader("X-SESSION-ID") String sessionId,
+            @RequestBody ChatRequest request
+    ) {
+        return chatService.chat(request, email, sessionId);
     }
 }
