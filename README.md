@@ -23,17 +23,21 @@ GyaniBot is a pluggable, production-ready chatbot microservice built using **Spr
 - Response metadata includes role, model, message id, finish reason and timestamp.
 - Secure endpoints using an `X-API-KEY` header.
 - Global exception handling for consistent API errors.
-- Designed for extension with persistent history and analytics *(planned)*.
+- Stores chat history in PostgreSQL (analytics planned).
 
 ## Quick Start
 1. Clone the repository and `cd` into it.
-2. Export your OpenAI key: `export SPRING_AI_OPENAI_API_KEY=sk-...`.
-3. Set the expected API key (used in the `X-API-KEY` header): `export X_API_KEY=my-secret`.
-4. Start the service:
+2. Start PostgreSQL:
+   ```bash
+   docker-compose up -d
+   ```
+3. Export your OpenAI key: `export SPRING_AI_OPENAI_API_KEY=sk-...`.
+4. Set the expected API key (used in the `X-API-KEY` header): `export X_API_KEY=my-secret`.
+5. Start the service:
    ```bash
    ./mvnw spring-boot:run
    ```
-5. Send a message to `http://localhost:8080/api/chat/message` with the header `X-API-KEY: my-secret`.
+6. Send a message to `http://localhost:8080/api/chat/message` with the header `X-API-KEY: my-secret`.
 
 ## API
 ### POST `/api/chat/message`
@@ -81,6 +85,10 @@ Example response:
 │   │   │       │   └── InvalidApiKeyException.java
 │   │   │       ├── filter
 │   │   │       │   └── ApiKeyFilter.java
+│   │   │       ├── entities
+│   │   │       │   ├── ChatMessage.java
+│   │   │       │   ├── ChatSession.java
+│   │   │       │   └── User.java
 │   │   │       └── security
 │   │   │           └── ApiKeyValidator.java
 │   │   └── resources
@@ -94,7 +102,7 @@ Example response:
 - Java 21
 - Spring Boot 3.5.3
 - Spring AI (OpenAI ChatModel)
-- Dockerized PostgreSQL *(planned)*
+- Dockerized PostgreSQL
 - REST APIs
 - DTO + Service + Repository Architecture
 - Lombok
