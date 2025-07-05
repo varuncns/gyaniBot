@@ -23,11 +23,14 @@ GyaniBot is a pluggable, production-ready chatbot microservice built using **Spr
 - Response metadata includes role, model, message id, finish reason and timestamp.
 - Secure endpoints using an `X-API-KEY` header.
 - Global exception handling for consistent API errors.
-- Stores chat history in PostgreSQL (analytics planned).
+- Stores chat messages in MongoDB and session data in PostgreSQL.
+- Retrieve chat history for a session.
+- List active chat sessions for a user.
+- API documentation available via Swagger UI at `/swagger-ui.html`.
 
 ## Quick Start
 1. Clone the repository and `cd` into it.
-2. Start PostgreSQL:
+2. Start PostgreSQL and MongoDB:
    ```bash
    docker-compose up -d
    ```
@@ -37,7 +40,9 @@ GyaniBot is a pluggable, production-ready chatbot microservice built using **Spr
    ```bash
    ./mvnw spring-boot:run
    ```
-6. Send a message to `http://localhost:8080/api/chat/message` with the header `X-API-KEY: my-secret`.
+6. Send a message to `http://localhost:8080/api/chat/message` with headers:
+   `X-API-KEY: my-secret`, `X-USER-EMAIL: you@example.com` and `X-SESSION-ID: <uuid>`.
+7. Open `http://localhost:8080/swagger-ui.html` for API docs.
 
 ## API
 ### POST `/api/chat/message`
@@ -62,9 +67,26 @@ Example response:
   "usage": {
     "promptTokens": 0,
     "completionTokens": 0,
-    "totalTokens": 0
+  "totalTokens": 0
   }
 }
+```
+
+### GET `/api/chat/history`
+Headers: `X-SESSION-ID`
+```json
+[
+  { "role": "user", "content": "Hi", "timestamp": "2024-01-01T00:00:00Z" },
+  { "role": "assistant", "content": "Hello!", "timestamp": "2024-01-01T00:00:01Z" }
+]
+```
+
+### GET `/api/chat/sessions`
+Headers: `X-USER-EMAIL`
+```json
+[
+  { "sessionId": "123", "startedAt": "2024-01-01T00:00:00Z", "totalMessages": 2 }
+]
 ```
 
 ## Folder Structure
@@ -102,11 +124,12 @@ Example response:
 - Java 21
 - Spring Boot 3.5.3
 - Spring AI (OpenAI ChatModel)
-- Dockerized PostgreSQL
+- Dockerized PostgreSQL and MongoDB
 - REST APIs
 - DTO + Service + Repository Architecture
 - Lombok
 - Secure via `X-API-KEY`
+- Swagger UI
 
 ## Author
 Built with ❤️ by Varun
