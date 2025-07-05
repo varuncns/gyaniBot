@@ -1,11 +1,13 @@
 package com.chatbot.chatbotservice.service.impl;
 
 import com.chatbot.chatbotservice.document.ChatMessage;
+import com.chatbot.chatbotservice.document.ChatMessageDTO;
 import com.chatbot.chatbotservice.dto.ChatRequest;
 import com.chatbot.chatbotservice.dto.ChatResponse;
 import com.chatbot.chatbotservice.dto.ChatResponse.Meta;
 import com.chatbot.chatbotservice.dto.ChatResponse.Usage;
 import com.chatbot.chatbotservice.entities.ChatSession;
+import com.chatbot.chatbotservice.entities.ChatSessionDTO;
 import com.chatbot.chatbotservice.entities.User;
 import com.chatbot.chatbotservice.repository.ChatMessageRepository;
 import com.chatbot.chatbotservice.repository.ChatSessionRepository;
@@ -104,4 +106,33 @@ public class ChatServiceImpl implements ChatService {
         // 6. Return DTO
         return new ChatResponse(aiReply, meta, usage);
     }
+    
+    @Override
+    public List<ChatMessageDTO> getChatHistory(String sessionId) {
+        List<ChatMessage> messages = chatMessageRepo.findBySessionIdOrderByTimestampAsc(sessionId);
+        return messages.stream()
+                .map(msg -> new ChatMessageDTO(msg.getRole(), msg.getContent(), msg.getTimestamp()))
+                .toList();
+    }
+    
+    @Override
+    public List<ChatSessionDTO> getAllSessions(String userEmail) {
+        // 1. Get user
+        User user = userRepo.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // 2. Get sessions
+        List<ChatSession> sessions = sessionRepo.findByUser(user);
+
+        // 3. Build DTOs with Mongo count
+        return sessions.stream().map(session -> {
+            int count = chatMessageRepo.countBySessionId(session.getSessionId());
+            return new ChatSessionDTO(
+                    session.getSessionId(),
+                    session.getStartedAt(),
+                    count
+            );
+        }).toList();
+    }
+
 }
