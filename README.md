@@ -1,4 +1,4 @@
-# 📣 GyaniBot
+# 🤖 GyaniBot
 <!-- Logo -->
 <p align="center">
   <img src="https://raw.githubusercontent.com/varuncns/varuncns/main/gyaniBot.png" alt="Logo" width="120" />
