@@ -21,17 +21,19 @@ GyaniBot is a pluggable, production-ready chatbot microservice built using **Spr
 - REST endpoint to chat with OpenAI models.
 - Model configurable via `spring.ai.openai.chat.model`.
 - Response metadata includes role, model, message id, finish reason and timestamp.
+- Secure endpoints using an `X-API-KEY` header.
+- Global exception handling for consistent API errors.
 - Designed for extension with persistent history and analytics *(planned)*.
-- Optional API key security *(planned)*.
 
 ## Quick Start
 1. Clone the repository and `cd` into it.
 2. Export your OpenAI key: `export SPRING_AI_OPENAI_API_KEY=sk-...`.
-3. Start the service:
+3. Set the expected API key (used in the `X-API-KEY` header): `export X_API_KEY=my-secret`.
+4. Start the service:
    ```bash
    ./mvnw spring-boot:run
    ```
-4. Send a message to `http://localhost:8080/api/chat/message`.
+5. Send a message to `http://localhost:8080/api/chat/message` with the header `X-API-KEY: my-secret`.
 
 ## API
 ### POST `/api/chat/message`
@@ -71,9 +73,16 @@ Example response:
 │   │   │       ├── ChatBotServiceApplication.java
 │   │   │       ├── controller
 │   │   │       │   └── ChatController.java
-│   │   │       └── dto
-│   │   │           ├── ChatRequest.java
-│   │   │           └── ChatResponse.java
+│   │   │       ├── dto
+│   │   │       │   ├── ChatRequest.java
+│   │   │       │   └── ChatResponse.java
+│   │   │       ├── exception
+│   │   │       │   ├── GlobalExceptionHandler.java
+│   │   │       │   └── InvalidApiKeyException.java
+│   │   │       ├── filter
+│   │   │       │   └── ApiKeyFilter.java
+│   │   │       └── security
+│   │   │           └── ApiKeyValidator.java
 │   │   └── resources
 │   │       └── application.properties
 │   └── test
@@ -89,7 +98,7 @@ Example response:
 - REST APIs
 - DTO + Service + Repository Architecture
 - Lombok
-- Secure via `X-API-KEY` *(planned)*
+- Secure via `X-API-KEY`
 
 ## Author
 Built with ❤️ by Varun
