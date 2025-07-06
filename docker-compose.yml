@@ -36,6 +36,8 @@ services:
       - gyani_mongo
     environment:
       SPRING_PROFILES_ACTIVE: docker
+    volumes:
+      - ./logs:/app/logs
     networks:
       - gyanibot-net
 
@@ -55,6 +57,16 @@ services:
     ports:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - gyanibot-net
+
+  gyani_promtail:
+    image: grafana/promtail:2.9.4
+    container_name: gyani_promtail
+    volumes:
+      - ./logs:/app/logs
+      - ./promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
     networks:
       - gyanibot-net
 
