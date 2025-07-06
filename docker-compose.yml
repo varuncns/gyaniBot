@@ -1,7 +1,8 @@
 version: '3.8'
 
 services:
-  postgres:
+
+  gyani_postgres:
     image: postgres:15
     container_name: gyani_postgres
     environment:
@@ -15,7 +16,7 @@ services:
     networks:
       - gyanibot-net
 
-  mongo:
+  gyani_mongo:
     image: mongo:latest
     container_name: gyani_mongo
     ports:
@@ -25,9 +26,56 @@ services:
     networks:
       - gyanibot-net
 
+  gyani_app:
+    build: .
+    container_name: gyani_app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - gyani_postgres
+      - gyani_mongo
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    networks:
+      - gyanibot-net
+
+  gyani_prometheus:
+    image: prom/prometheus
+    container_name: gyani_prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - gyanibot-net
+
+  gyani_loki:
+    image: grafana/loki:2.9.4
+    container_name: gyani_loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - gyanibot-net
+
+  gyani_grafana:
+    image: grafana/grafana
+    container_name: gyani_grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - gyani_prometheus
+      - gyani_loki
+    networks:
+      - gyanibot-net
+
 volumes:
   postgres_data:
   mongo_data:
+  grafana_data:
 
 networks:
   gyanibot-net:
