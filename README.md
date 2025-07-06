@@ -36,6 +36,7 @@ GyaniBot is a pluggable, production-ready chatbot microservice built using **Spr
   MOTIVATIONAL_COACH, SARCASTIC_BOT) to tailor the bot's responses.
 - API documentation available via Swagger UI at `/swagger-ui.html`.
 - Dockerized setup with PostgreSQL, MongoDB, Prometheus, Loki and Grafana.
+- Centralized logging with Promtail shipping application logs to Loki.
 - Metrics exposed via `/actuator/prometheus` for monitoring.
 - Ready-to-use Grafana dashboards for observability.
 
@@ -172,6 +173,8 @@ GyaniBot is a pluggable, production-ready chatbot microservice built using **Spr
    ```
 2. The application will be available on `http://localhost:8080`.
    Prometheus runs on `http://localhost:9090` and Grafana on `http://localhost:3000`.
+   Application logs are written to `./logs/app.log` and collected by Promtail,
+   so you can view them in Grafana under the Loki data source.
 
 ## Next Milestones
 - Add CI/CD automation
