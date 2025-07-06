@@ -26,6 +26,8 @@ GyaniBot is a pluggable, production-ready chatbot microservice built using **Spr
 - Stores chat messages in MongoDB and session data in PostgreSQL.
 - Retrieve chat history for a session.
 - List active chat sessions for a user.
+- Choose from multiple chat personas (WISE_SAGE, FRIENDLY_BUDDY, TECH_EXPERT,
+  MOTIVATIONAL_COACH, SARCASTIC_BOT) to tailor the bot's responses.
 - API documentation available via Swagger UI at `/swagger-ui.html`.
 
 ## Quick Start
@@ -40,16 +42,21 @@ GyaniBot is a pluggable, production-ready chatbot microservice built using **Spr
    ```bash
    ./mvnw spring-boot:run
    ```
-6. Send a message to `http://localhost:8080/api/chat/message` with headers:
-   `X-API-KEY: my-secret`, `X-USER-EMAIL: you@example.com` and `X-SESSION-ID: <uuid>`.
-7. Open `http://localhost:8080/swagger-ui.html` for API docs.
+6. Send a message to `http://localhost:8080/api/chat/message` with headers
+   `X-API-KEY: my-secret`, `X-USER-EMAIL: you@example.com` and
+   `X-SESSION-ID: <uuid>`. Include an optional `persona` field in the JSON body
+   to pick the chat persona.
+7. To change the persona later, call `PATCH /api/chat/persona?persona=TECH_EXPERT`
+   with the same headers.
+8. Open `http://localhost:8080/swagger-ui.html` for API docs.
 
 ## API
 ### POST `/api/chat/message`
 Request body:
 ```json
 {
-  "message": "Hello"
+  "message": "Hello",
+  "persona": "FRIENDLY_BUDDY" // optional
 }
 ```
 Example response:
@@ -87,6 +94,18 @@ Headers: `X-USER-EMAIL`
 [
   { "sessionId": "123", "startedAt": "2024-01-01T00:00:00Z", "totalMessages": 2 }
 ]
+```
+
+### PATCH `/api/chat/persona`
+Query parameter: `persona`
+Headers: `X-USER-EMAIL`, `X-SESSION-ID`
+
+```
+curl -X PATCH \
+  'http://localhost:8080/api/chat/persona?persona=TECH_EXPERT' \
+  -H 'X-API-KEY: my-secret' \
+  -H 'X-USER-EMAIL: you@example.com' \
+  -H 'X-SESSION-ID: <uuid>'
 ```
 
 ## Folder Structure
