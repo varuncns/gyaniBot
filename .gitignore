@@ -28,6 +28,7 @@ target/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
+### Local config containing secrets
 src/main/resources/application-local.properties
 
 ### VS Code ###
