@@ -9,12 +9,15 @@ import com.chatbot.chatbotservice.dto.ChatResponse.Usage;
 import com.chatbot.chatbotservice.entities.ChatSession;
 import com.chatbot.chatbotservice.entities.ChatSessionDTO;
 import com.chatbot.chatbotservice.entities.User;
+import com.chatbot.chatbotservice.enums.ChatPersona;
+import com.chatbot.chatbotservice.service.PersonalPromptFactory;
 import com.chatbot.chatbotservice.repository.ChatMessageRepository;
 import com.chatbot.chatbotservice.repository.ChatSessionRepository;
 import com.chatbot.chatbotservice.repository.UserRepository;
 import com.chatbot.chatbotservice.service.ChatService;
 import jakarta.transaction.Transactional;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -33,6 +36,7 @@ public class ChatServiceImpl implements ChatService {
     private final ChatSessionRepository sessionRepo;
     private final ChatMessageRepository chatMessageRepo;
     private final ChatModel chatModel;
+    private final PersonalPromptFactory personaPromptFactory;
 
     @Value("${spring.ai.openai.chat.model}")
     private String modelName;
@@ -41,12 +45,14 @@ public class ChatServiceImpl implements ChatService {
             UserRepository userRepo,
             ChatSessionRepository sessionRepo,
             ChatMessageRepository chatMessageRepo,
-            ChatModel chatModel
+            ChatModel chatModel,
+            PersonalPromptFactory personaPromptFactory
     ) {
         this.userRepo = userRepo;
         this.sessionRepo = sessionRepo;
         this.chatMessageRepo = chatMessageRepo;
         this.chatModel = chatModel;
+        this.personaPromptFactory = personaPromptFactory;
     }
 
     @Override
@@ -56,12 +62,17 @@ public class ChatServiceImpl implements ChatService {
                 userRepo.save(User.builder().email(userEmail).build()));
 
         // 2. Get or create session
-        ChatSession session = sessionRepo.findBySessionId(sessionId).orElseGet(() ->
-                sessionRepo.save(ChatSession.builder()
-                        .sessionId(sessionId)
-                        .startedAt(Instant.now())
-                        .user(user)
-                        .build()));
+        ChatSession session = sessionRepo.findBySessionId(sessionId).orElse(null);
+
+        if (session == null) {
+            ChatPersona persona = request.getPersona() != null ? request.getPersona() : ChatPersona.DEFAULT;
+            session = sessionRepo.save(ChatSession.builder()
+                    .sessionId(sessionId)
+                    .startedAt(Instant.now())
+                    .user(user)
+                    .persona(persona)
+                    .build());
+        }
 
         // 3. Save user message in MongoDB
         chatMessageRepo.save(ChatMessage.builder()
@@ -72,8 +83,12 @@ public class ChatServiceImpl implements ChatService {
                 .timestamp(Instant.now())
                 .build());
 
-        // 4. Generate GPT response
-        Prompt prompt = new Prompt(List.of(new UserMessage(request.getMessage())));
+        // 4. Generate GPT response with system prompt based on persona
+        String personaPrompt = personaPromptFactory.getSystemPrompt(session.getPersona());
+        SystemMessage systemMessage = new SystemMessage(personaPrompt);
+        UserMessage userMessage = new UserMessage(request.getMessage());
+
+        Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
         var result = chatModel.call(prompt);
 
         String aiReply = "Sorry, I couldn’t generate a response.";
@@ -106,7 +121,7 @@ public class ChatServiceImpl implements ChatService {
         // 6. Return DTO
         return new ChatResponse(aiReply, meta, usage);
     }
-    
+
     @Override
     public List<ChatMessageDTO> getChatHistory(String sessionId) {
         List<ChatMessage> messages = chatMessageRepo.findBySessionIdOrderByTimestampAsc(sessionId);
@@ -114,7 +129,7 @@ public class ChatServiceImpl implements ChatService {
                 .map(msg -> new ChatMessageDTO(msg.getRole(), msg.getContent(), msg.getTimestamp()))
                 .toList();
     }
-    
+
     @Override
     public List<ChatSessionDTO> getAllSessions(String userEmail) {
         // 1. Get user
@@ -133,6 +148,14 @@ public class ChatServiceImpl implements ChatService {
                     count
             );
         }).toList();
+    }
+    
+    @Override
+    public void updatePersona(String sessionId, ChatPersona persona) {
+        ChatSession session = sessionRepo.findBySessionId(sessionId)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+        session.setPersona(persona);
+        sessionRepo.save(session);
     }
 
 }

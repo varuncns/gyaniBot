@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.time.Instant;
 
+import com.chatbot.chatbotservice.enums.ChatPersona;
+
 @Entity
 @Table(name = "chat_sessions")
 @Data
@@ -24,4 +26,7 @@ public class ChatSession {
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
+    
+    @Enumerated(EnumType.STRING)
+    private ChatPersona persona; 
 }
