@@ -13,9 +13,13 @@ GyaniBot is a pluggable, production-ready chatbot microservice built using **Spr
 - [Features](#features)
 - [Quick Start](#quick-start)
 - [API](#api)
-- [Folder Structure](#folder-structure)
+- [Sample Payload](#sample-payload)
 - [Tech Stack](#tech-stack)
+- [Folder Structure](#folder-structure)
 - [Security & Best Practices](#security--best-practices)
+- [Environment Variables](#environment-variables)
+- [Docker Setup](#docker-setup)
+- [Next Milestones](#next-milestones)
 - [Author](#author)
 
 ## Features
@@ -31,6 +35,9 @@ GyaniBot is a pluggable, production-ready chatbot microservice built using **Spr
 - Choose from multiple chat personas (WISE_SAGE, FRIENDLY_BUDDY, TECH_EXPERT,
   MOTIVATIONAL_COACH, SARCASTIC_BOT) to tailor the bot's responses.
 - API documentation available via Swagger UI at `/swagger-ui.html`.
+- Dockerized setup with PostgreSQL, MongoDB, Prometheus, Loki and Grafana.
+- Metrics exposed via `/actuator/prometheus` for monitoring.
+- Ready-to-use Grafana dashboards for observability.
 
 ## Quick Start
 1. Clone the repository and `cd` into it.
@@ -59,7 +66,7 @@ GyaniBot is a pluggable, production-ready chatbot microservice built using **Spr
 | GET |/api/chat/sessions | List all chat sessions |
 | PATCH |/api/chat/persona | Update active persona |
 
-### Payloads
+## Sample Payload
 #### ChatRequest
 ```json
 {
@@ -144,10 +151,32 @@ GyaniBot is a pluggable, production-ready chatbot microservice built using **Spr
 | Build Tool | Maven |
 | Auth | X-API-KEY header |
 | Docs | Swagger UI |
+| Observability | Prometheus, Grafana, Loki |
+| Containerization | Docker |
 ## Security & Best Practices
 - **Never** commit your `spring.ai.openai.api-key` or other secrets.
 - Keep sensitive values in `src/main/resources/application-local.properties` (ignored via `.gitignore`).
 - Use `application-local.properties.sample` as a template.
+
+## Environment Variables
+| Name | Description |
+| ---- | ----------- |
+| `spring.ai.openai.api-key` | OpenAI API key used by the service |
+| `x-api-key` | Key expected in the `X-API-KEY` header |
+| `spring.ai.openai.chat.model` | Chat model to use (e.g. `gpt-3.5-turbo`) |
+
+## Docker Setup
+1. Build and start all services:
+   ```bash
+   docker-compose up --build -d
+   ```
+2. The application will be available on `http://localhost:8080`.
+   Prometheus runs on `http://localhost:9090` and Grafana on `http://localhost:3000`.
+
+## Next Milestones
+- Add CI/CD automation
+- Provide Kubernetes manifests
+- Expand persona library
 
 ## Author
 Built with ❤️ by Varun
