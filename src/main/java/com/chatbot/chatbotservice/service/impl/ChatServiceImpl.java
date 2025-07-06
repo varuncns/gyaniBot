@@ -10,21 +10,20 @@ import com.chatbot.chatbotservice.entities.ChatSession;
 import com.chatbot.chatbotservice.entities.ChatSessionDTO;
 import com.chatbot.chatbotservice.entities.User;
 import com.chatbot.chatbotservice.enums.ChatPersona;
-import com.chatbot.chatbotservice.service.PersonalPromptFactory;
 import com.chatbot.chatbotservice.repository.ChatMessageRepository;
 import com.chatbot.chatbotservice.repository.ChatSessionRepository;
 import com.chatbot.chatbotservice.repository.UserRepository;
 import com.chatbot.chatbotservice.service.ChatService;
+import com.chatbot.chatbotservice.service.PersonalPromptFactory;
 import jakarta.transaction.Transactional;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.messages.SystemMessage;
-import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.messages.*;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -74,7 +73,7 @@ public class ChatServiceImpl implements ChatService {
                     .build());
         }
 
-        // 3. Save user message in MongoDB
+        // 3. Save user message
         chatMessageRepo.save(ChatMessage.builder()
                 .userEmail(userEmail)
                 .sessionId(sessionId)
@@ -83,14 +82,31 @@ public class ChatServiceImpl implements ChatService {
                 .timestamp(Instant.now())
                 .build());
 
-        // 4. Generate GPT response with system prompt based on persona
+        // 4. Build prompt with system prompt and last 5 messages
         String personaPrompt = personaPromptFactory.getSystemPrompt(session.getPersona());
         SystemMessage systemMessage = new SystemMessage(personaPrompt);
-        UserMessage userMessage = new UserMessage(request.getMessage());
 
-        Prompt prompt = new Prompt(List.of(systemMessage, userMessage));
+        List<org.springframework.ai.chat.messages.Message> promptMessages = new ArrayList<>();
+        promptMessages.add(systemMessage);
+
+        List<ChatMessage> previousMessages = chatMessageRepo
+                .findTop5BySessionIdOrderByTimestampAsc(sessionId);
+
+        for (ChatMessage msg : previousMessages) {
+            if ("user".equals(msg.getRole())) {
+                promptMessages.add(new UserMessage(msg.getContent()));
+            } else if ("assistant".equals(msg.getRole())) {
+                promptMessages.add(new AssistantMessage(msg.getContent()));
+            }
+        }
+
+        // Add current message
+        promptMessages.add(new UserMessage(request.getMessage()));
+
+        Prompt prompt = new Prompt(promptMessages);
         var result = chatModel.call(prompt);
 
+        // 5. Parse GPT response
         String aiReply = "Sorry, I couldn’t generate a response.";
         Meta meta = null;
         Usage usage = new Usage(0, 0, 0);
@@ -109,7 +125,7 @@ public class ChatServiceImpl implements ChatService {
             );
         }
 
-        // 5. Save assistant reply in MongoDB
+        // 6. Save assistant reply
         chatMessageRepo.save(ChatMessage.builder()
                 .userEmail(userEmail)
                 .sessionId(sessionId)
@@ -118,38 +134,27 @@ public class ChatServiceImpl implements ChatService {
                 .timestamp(Instant.now())
                 .build());
 
-        // 6. Return DTO
+        // 7. Return response
         return new ChatResponse(aiReply, meta, usage);
     }
 
     @Override
     public List<ChatMessageDTO> getChatHistory(String sessionId) {
-        List<ChatMessage> messages = chatMessageRepo.findBySessionIdOrderByTimestampAsc(sessionId);
-        return messages.stream()
+        return chatMessageRepo.findBySessionIdOrderByTimestampAsc(sessionId).stream()
                 .map(msg -> new ChatMessageDTO(msg.getRole(), msg.getContent(), msg.getTimestamp()))
                 .toList();
     }
 
     @Override
     public List<ChatSessionDTO> getAllSessions(String userEmail) {
-        // 1. Get user
         User user = userRepo.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // 2. Get sessions
-        List<ChatSession> sessions = sessionRepo.findByUser(user);
-
-        // 3. Build DTOs with Mongo count
-        return sessions.stream().map(session -> {
+        return sessionRepo.findByUser(user).stream().map(session -> {
             int count = chatMessageRepo.countBySessionId(session.getSessionId());
-            return new ChatSessionDTO(
-                    session.getSessionId(),
-                    session.getStartedAt(),
-                    count
-            );
+            return new ChatSessionDTO(session.getSessionId(), session.getStartedAt(), count);
         }).toList();
     }
-    
+
     @Override
     public void updatePersona(String sessionId, ChatPersona persona) {
         ChatSession session = sessionRepo.findBySessionId(sessionId)
@@ -157,5 +162,4 @@ public class ChatServiceImpl implements ChatService {
         session.setPersona(persona);
         sessionRepo.save(session);
     }
-
 }
